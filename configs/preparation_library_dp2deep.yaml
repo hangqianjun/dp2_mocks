@@ -1,0 +1,530 @@
+# These are templates for catalogs produced in the early stages of the analysis
+Catalogs:
+  #- CatalogTemplate:
+  #    name: truth_roman_rubin
+  #    path_template: "{catalogs_dir}/{project}_roman_rubin/{pixel}/part-0.parquet"
+  #    iteration_vars: ['pixel']
+  - CatalogTemplate:
+      name: truth_cardinal
+      path_template: "{catalogs_dir}/Chinchilla-3-triofile.{pixel}.parquet"
+      iteration_vars: ['pixel']
+  - CatalogTemplate:
+      name: truth_flagship
+      path_template: "{catalogs_dir}/{pixel}.parquet"
+      iteration_vars: ['pixel']
+  - CatalogTemplate:
+      name: reduced
+      path_template: "{catalogs_dir}/{project}_{selection}/{pixel}/part-0.pq"
+      iteration_vars: ['pixel']
+  - CatalogTemplate:
+      name: degraded
+      path_template: "{catalogs_dir}/{project}_{selection}_{flavor}/{pixel}/{basename}"
+      iteration_vars: ['pixel']
+
+
+# These are templates for specific files, such as testing and training files
+Files:
+  - FileTemplate:
+      name: test_file_100k
+      path_template: "{catalogs_dir}/test/{project}_{selection}_baseline_100k.hdf5"
+  - FileTemplate:
+      name: train_file_100k
+      path_template: "{catalogs_dir}/train/{project}_{selection}_baseline_100k.hdf5"
+
+
+# These describe all the algorithms that estimate PZ
+PZAlgorithms:
+  - PZAlgorithm:
+      name: trainz
+      Estimate: TrainZEstimator
+      Inform: TrainZInformer
+      Module: rail.estimation.algos.train_z
+  - PZAlgorithm:
+      name: simplenn
+      Estimate: SklNeurNetEstimator
+      Inform: SklNeurNetInformer
+      Module: rail.estimation.algos.sklearn_neurnet
+  - PZAlgorithm:
+      name: fzboost
+      Estimate: FlexZBoostEstimator
+      Inform: FlexZBoostInformer
+      Module: rail.estimation.algos.flexzboost
+  - PZAlgorithm:
+      name: knn
+      Estimate: KNearNeighEstimator
+      Inform: KNearNeighInformer
+      Module: rail.estimation.algos.k_nearneigh
+  - PZAlgorithm:
+      name: gpz
+      Estimate: GPzEstimator
+      Inform: GPzInformer
+      Module: rail.estimation.algos.gpz
+  - PZAlgorithm:
+      name: bpz
+      Estimate: BPZliteEstimator
+      Inform: BPZliteInformer
+      Module: rail.estimation.algos.bpz_lite
+  - PZAlgorithm:
+      name: tpz
+      Estimate: TPZliteEstimator
+      Inform: TPZliteInformer
+      Module: rail.estimation.algos.tpz_lite
+
+
+# These describe the ways we can sub-sample the data
+Subsamplers:
+  - Subsampler:
+      name: random_subsampler
+      Subsample: RandomSubsampler
+      Module: rail.projects.subsampler
+  - Subsampler:
+      name: multi_catalog_subsampler
+      Subsample: MultiCatalogSubsampler
+      Module: rail.projects.subsampler
+
+
+# These describe the ways we can reduce the data
+Reducers:
+  - Reducer:
+      name: roman_rubin
+      Reduce: RomanRubinReducer
+      Module: rail.projects.reducer
+  - Reducer:
+      name: flagship
+      Reduce: FlagshipReducer
+      Module: rail.projects.reducer
+  - Reducer:
+      name: cardinal
+      Reduce: CardinalReducer
+      Module: rail.projects.reducer
+
+
+# These describe the selections going from Input to Reduced catalog
+Selections:
+  #- Selection:
+  #    name: roman_rubin_gold
+  #    cuts:
+  #      maglim_i: [null, 25.5]
+  #- Selection:
+  #    name: cardinal_gold
+  #    cuts:
+  #      maglim_i: [null, 25.5]
+  #- Selection:
+  #    name: flagship_gold
+  #    cuts:
+  #      maglim_i: [null, 25.5]
+  - Selection:
+      name: flagship_deep
+      cuts:
+        maglim_i: [null, 27.0]
+  - Selection:
+      name: cardinal_deep
+      cuts:
+        maglim_i: [null, 27.0]
+
+
+# These describe ways to subsampe the data
+Subsamples:
+  - Subsample:
+      name: test_100k
+      seed: 1234
+      num_objects: 100000
+  - Subsample:
+      name: train_100k
+      seed: 4321
+      num_objects: 100000
+
+# These describe the error models we use in the truth_to_observed pipeline # modify this to dp2
+ErrorModels:
+  - ErrorModel:
+      name: lsst_cosmos_dp2
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1. # do not change this as we use 5 sigma depth
+        nVisYr: # do not change this as we use 5 sigma depth
+            u: 1
+            g: 1
+            r: 1
+            i: 1
+            z: 1
+            y: 1
+        m5: # mean from TQ's depth map in cosmos field
+            u: 25.39
+            g: 26.32
+            r: 25.51
+            i: 25.62
+            z: 24.83
+            y: 23.58
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 1.22
+            g: 1.22
+            r: 1.22
+            i: 1.22
+            z: 1.22
+            y: 1.22
+        airmass: 1.  # do not change this as we use effective theta, which accounts for dependence on airmass
+        minorCol: minor
+        majorCol: major
+        extendedType: gaap
+        aMin: 1.5  # from Gaap1p0
+        highSNR: false 
+  - ErrorModel:
+      name: lsst_cosmos_dp2_wfd
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr: # do not change this as we use 5 sigma depth
+            u: 1
+            g: 1
+            r: 1
+            i: 1
+            z: 1
+            y: 1
+        m5: # mean from TQ's depth map (WFD with i>24, g>24.5, r>24.3, z>23.3 and (ra>290)*(dec>-35)*(dec<30)
+            u: 23.79
+            g: 25.23
+            r: 25.21
+            i: 24.76
+            z: 24.03
+            y: 22.88
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 1.22
+            g: 1.22
+            r: 1.22
+            i: 1.22
+            z: 1.22
+            y: 1.22
+        airmass: 1.  # do not change this as we use effective theta, which accounts for dependence on airmass
+        minorCol: minor
+        majorCol: major
+        extendedType: gaap
+        aMin: 1.5  # from Gaap1p0
+        highSNR: false 
+  - ErrorModel:
+      name: lsst_cosmos_sv
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr:  # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 100
+            g: 82
+            r: 166
+            i: 139
+            z: 111
+            y: 66
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 1.22
+            g: 1.22
+            r: 1.22
+            i: 1.22
+            z: 1.22
+            y: 1.22
+  - ErrorModel:
+      name: lsst_ddf_edfs_a_sv
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr:  # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 20
+            r: 21
+            i: 28
+            z: 18
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 1.32
+            r: 1.32
+            i: 1.32
+            z: 1.32
+  - ErrorModel:
+      name: lsst_ddf_edfs_b_sv
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr:  # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 24
+            r: 21
+            i: 29
+            z: 18
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 1.37
+            r: 1.37
+            i: 1.37
+            z: 1.37
+  - ErrorModel:
+      name: lsst_ddf_ecdfs_sv
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr:  # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 36
+            r: 39
+            i: 41
+            z: 44
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            g: 1.51
+            r: 1.51
+            i: 1.51
+            z: 1.51
+  - ErrorModel:
+      name: lsst_ddf_elaiss1_sv
+      ErrorModel: LSSTErrorModel
+      Module: rail.creation.degraders.photometric_errors
+      Overrides:
+        nYrObs: 1.  # do not change this as we use total number of visits
+        nVisYr:  # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 39
+            g: 101
+            r: 103
+            i: 168
+            z: 112
+            y: 16
+        theta: # from https://survey-strategy.lsst.io/progress/sv_status/sv_20250930.html#id1
+            u: 1.4
+            g: 1.4
+            r: 1.4
+            i: 1.4
+            z: 1.4
+            y: 1.4
+  - ErrorModel:
+      name: lsst_obs_cond_dp1
+      ErrorModel: ObsCondition
+      Module: rail.creation.degraders.observing_condition_degrader
+      Bands: ['u', 'g', 'r', 'i', 'z', 'y']
+      Overrides:
+        # also overwrite km if the PhotErr default value differ from LSST specific value
+        hdf5_groupname: ''
+        mask: "/pscratch/sd/q/qhang/lsst_dp1/mask_deepCoadd_psf_maglim_consolidated_map_weighted_mean-ECDFS-nside-2048.fits"
+        weight: ""
+        nside: 2048
+        map_dict:
+          m5:
+            u: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-u-ECDFS-nside-2048.fits"
+            g: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-g-ECDFS-nside-2048.fits"
+            r: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-r-ECDFS-nside-2048.fits"
+            i: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-i-ECDFS-nside-2048.fits"
+            z: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-z-ECDFS-nside-2048.fits"
+            y: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-y-ECDFS-nside-2048.fits"
+          nYrObs: 1.  # do not change this as we use coadd depth map
+          nVisYr:  # do not change this as we use coadd depth map
+            u: 1.
+            g: 1.
+            r: 1.
+            i: 1.
+            z: 1.
+            y: 1.
+          theta:
+            u: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-u-ECDFS-nside-2048.fits"
+            g: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-g-ECDFS-nside-2048.fits"
+            r: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-r-ECDFS-nside-2048.fits"
+            i: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-i-ECDFS-nside-2048.fits"
+            z: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-z-ECDFS-nside-2048.fits"
+            y: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_size_consolidated_map_weighted_mean-y-ECDFS-nside-2048.fits"
+          airmass: 1.  # do not change this as we use effective theta, which accounts for dependence on airmass
+          minorCol: minor
+          majorCol: major
+          extendedType: gaap
+          aMin: 1.5  # from Gaap1p0
+          highSNR: false 
+  - ErrorModel:
+      name: lsst_obs_cond_dp1_psf
+      ErrorModel: ObsCondition
+      Module: rail.creation.degraders.observing_condition_degrader
+      Bands: ['u', 'g', 'r', 'i', 'z', 'y']
+      Overrides:
+        # also overwrite km if the PhotErr default value differ from LSST specific value
+        hdf5_groupname: ''
+        mask: "/pscratch/sd/q/qhang/lsst_dp1/mask_deepCoadd_psf_maglim_consolidated_map_weighted_mean-ECDFS-nside-2048.fits"
+        weight: ""
+        nside: 2048
+        map_dict:
+          m5:
+            u: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-u-ECDFS-nside-2048.fits"
+            g: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-g-ECDFS-nside-2048.fits"
+            r: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-r-ECDFS-nside-2048.fits"
+            i: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-i-ECDFS-nside-2048.fits"
+            z: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-z-ECDFS-nside-2048.fits"
+            y: "/pscratch/sd/q/qhang/lsst_dp1/deepCoadd_psf_maglim_consolidated_map_weighted_mean-y-ECDFS-nside-2048.fits"
+          nYrObs: 1.  # do not change this as we use coadd depth map
+          nVisYr:  # do not change this as we use coadd depth map
+            u: 1.
+            g: 1.
+            r: 1.
+            i: 1.
+            z: 1.
+            y: 1.
+          extendedType: point
+          highSNR: false 
+
+
+# These describe all the algorithms that emulate spectroscopic selections
+SpecSelections:
+  # - SpecSelection:
+  #      name: GAMA:
+  #      Select: SpecSelection_GAMA
+  #      Module: rail.creation.degraders.spectroscopic_selections
+  # - SpecSelection:
+  #      name: BOSS
+  #      Select: SpecSelection_BOSS
+  #      Module: rail.creation.degraders.spectroscopic_selections
+  - SpecSelection:
+      name: VVDSf02
+      Select: SpecSelection_VVDSf02
+      Module: rail.creation.degraders.spectroscopic_selections
+  - SpecSelection:
+      name: zCOSMOS
+      Select: SpecSelection_zCOSMOS
+      Module: rail.creation.degraders.spectroscopic_selections
+  #- SpecSelection:
+  #    name: HSC
+  #    Select: SpecSelection_HSC
+  #    Module: rail.creation.degraders.spectroscopic_selections
+  - SpecSelection:
+      name: DEEP2_LSST
+      Select: SpecSelection_DEEP2_LSST
+      Module: rail.creation.degraders.spectroscopic_selections
+  # - SpecSelection:
+  #     name: DESI_BGS_roman_rubin
+  #     Select: SpecSelection_DESI_Phy
+  #     Module: rail.creation.degraders.desi_selector_phy
+  #     Overrides:
+  #       desi_type: "bgs"
+  #       threshold_col: "sod_halo_mass"
+  #       threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/bgs_threshold_roman_rubin.parquet"
+  # - SpecSelection:
+  #     name: DESI_LRG_roman_rubin
+  #     Select: SpecSelection_DESI_Phy
+  #     Module: rail.creation.degraders.desi_selector_phy
+  #     Overrides:
+  #       desi_type: "lrg"
+  #       threshold_col: "logsm_obs"
+  #       threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/lrg_threshold_roman_rubin.parquet"
+  # - SpecSelection:
+  #     name: DESI_ELG_roman_rubin
+  #     Select: SpecSelection_DESI_Phy
+  #     Module: rail.creation.degraders.desi_selector_phy
+  #     Overrides:
+  #       desi_type: "elg"
+  #       threshold_col: "sfr"
+  #       threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/elg_threshold_roman_rubin.parquet"
+  - SpecSelection:
+      name: DESI_BGS_flagship
+      Select: SpecSelection_DESI_Phy
+      Module: rail.creation.degraders.desi_selector_phy
+      Overrides:
+        desi_type: "bgs"
+        threshold_col: "lm_halo"
+        threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/bgs_threshold_flagship.parquet"
+  - SpecSelection:
+      name: DESI_LRG_flagship
+      Select: SpecSelection_DESI_Phy
+      Module: rail.creation.degraders.desi_selector_phy
+      Overrides:
+        desi_type: "lrg"
+        threshold_col: "log_stellar_mass"
+        threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/lrg_threshold_flagship.parquet"
+  - SpecSelection:
+      name: DESI_ELG_flagship
+      Select: SpecSelection_DESI_Phy
+      Module: rail.creation.degraders.desi_selector_phy
+      Overrides:
+        desi_type: "elg"
+        threshold_col: "log_sfr"
+        threshold_table: "/global/cfs/cdirs/lsst/groups/PZ/data/desi_thresholds/elg_threshold_flagship.parquet"
+  # - SpecSelection:
+  #     name: DESI_BGS_color
+  #     Select: SpecSelection_DESI_BGS
+  #     Module: rail.creation.degraders.spectroscopic_selections
+  # - SpecSelection:
+  #     name: DESI_LRG_color
+  #     Select: SpecSelection_DESI_LRG
+  #     Module: rail.creation.degraders.spectroscopic_selections
+  # - SpecSelection:
+  #     name: DESI_ELG_LOP_color
+  #     Select: SpecSelection_DESI_ELG_LOP
+  #     Module: rail.creation.degraders.spectroscopic_selections
+
+
+# These describe the various data analysis pipelines
+Pipelines:
+  - PipelineTemplate:
+      name: truth_to_observed
+      pipeline_class: rail.pipelines.degradation.truth_to_observed.TruthToObservedPipeline
+      input_catalog_template: reduced
+      output_catalog_template: degraded
+      kwargs:
+        error_models: ['lsst_obs_cond_dp1']
+        selectors: ['all']
+        blending: false
+        parallel: true
+  - PipelineTemplate:
+      name: photometric_errors
+      pipeline_class: rail.pipelines.degradation.apply_phot_errors.ApplyPhotErrorsPipeline
+      input_catalog_template: reduced
+      output_catalog_template: degraded
+      kwargs:
+        error_models: ['lsst_obs_cond_dp1']
+        parallel: true
+  - PipelineTemplate:
+      name: blending
+      input_catalog_template: degraded
+      output_catalog_template: degraded
+      pipeline_class: rail.pipelines.degradation.blending.BlendingPipeline
+      kwargs: {}
+  - PipelineTemplate:
+      name: spec_selection
+      input_catalog_template: degraded
+      output_catalog_template: degraded
+      pipeline_class: rail.pipelines.degradation.spectroscopic_selection_pipeline.SpectroscopicSelectionPipeline
+      kwargs:
+        selectors: ['all']
+
+
+# These are the classes that we used to merge data from different files
+# in particular, to merge the spectroscopic selections
+#Mergers:
+#  - Merger:
+#      name: spec_selection
+#      Merge: SpecSelectionMerger
+#      Module: rail.projects.merger
+
+
+## These are the various ways we merge the spectrscopic selections
+#Merges:
+#  - Merge:
+#      name: select_lsst_all
+#      # merge all the selections run on the 'lsst' photometric smearing
+#      inputs:
+#        hsc: output_select_lsst_HSC.pq
+#        cosmos: output_select_lsst_zCOSMOS.pq
+#      output_basename: output_select_lsst_all.pq
+#      merge_col: object_id
+#  - Merge:
+#      # merge all the selections run on the 'lsst_10yr' photometric smearing
+#      name: select_lsst_obs_cond_10yr_all
+#      inputs:
+#        hsc: output_select_lsst_obs_cond_10yr_HSC.pq
+#        cosmos: output_select_lsst_obs_cond_10yr_zCOSMOS.pq
+#      output_basename: output_select_lsst_obs_cond_10yr_all.pq
+#      merge_col: object_id
+#  - Merge:
+ #     # merge all the selections run on the 'lsst_1yr' photometric smearing
+#      name: select_lsst_obs_cond_1yr_all
+#      inputs:
+#        hsc: output_select_lsst_obs_cond_1yr_HSC.pq
+#        cosmos: output_select_lsst_obs_cond_1yr_zCOSMOS.pq
+#      output_basename: output_select_lsst_obs_cond_1yr_all.pq
+#      merge_col: object_id
+#  - Merge:
+#      # merge all the selections run on the 'lsst_4yr' photometric smearing
+#      name: select_lsst_obs_cond_4yr_all
+#      inputs:
+#        hsc: output_select_lsst_obs_cond_4yr_HSC.pq
+#        cosmos: output_select_lsst_obs_cond_4yr_zCOSMOS.pq
+#      output_basename: output_select_lsst_obs_cond_4yr_all.pq
+#      merge_col: object_id
+

@@ -1,0 +1,40 @@
+Project:
+
+  Includes:
+    - "/global/homes/q/qhang/desc/flagship_dp2/preparation_library_deep.yaml"
+
+  Name: dp2_mock_deep
+
+  PathTemplates: {}
+
+  # These are used to make all the other paths
+  CommonPaths:
+    project: deep_mock_run
+    sim_version: flagship
+    root: "/pscratch/sd/q/qhang/lsst_dp1/"
+    scratch_root: "{root}"
+    catalogs_dir: "{root}"
+
+  # Baseline configuraiton, included in others by default
+  Baseline:
+    catalog_tag: flagship
+    pipelines: ['all']
+
+
+  Flavors:
+    - Flavor:
+        name: test
+        pipeline_overrides:
+          truth_to_observed:
+            kwargs:
+              error_models: ['lsst_obs_cond_dp1']
+              models_to_run_select: ['lsst_obs_cond_dp1']
+              selectors: ['DEEP2_LSST']
+          photometric_errors:
+            kwargs:
+              error_models: ['lsst_obs_cond_dp1','lsst_obs_cond_dp1_psf']
+
+  # These are variables that we iterate over when running over entire catalogs
+  IterationVars:
+    pixel:
+        - 1

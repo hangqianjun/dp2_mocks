@@ -1,0 +1,48 @@
+Project:
+
+  Name: dp2_mock
+
+  Includes:
+    - "/global/homes/q/qhang/desc/flagship_dp2/preparation_library.yaml"
+
+  PathTemplates: {}
+
+  # These are used to make all the other paths
+  CommonPaths:
+    project: dp2_mock_run
+    sim_version: flagship
+    root: "/pscratch/sd/q/qhang/Flagship"
+    scratch_root: "{root}"
+    catalogs_dir: "{root}"
+
+
+  # Baseline configuraiton, included in others by default
+  Baseline:
+    catalog_tag: flagship
+    pipelines: ['all']
+
+  # These define the variant configurations for the various parts of the analysis
+  Flavors:
+    - Flavor:
+        name: test
+        pipeline_overrides:
+          truth_to_observed:
+            kwargs:
+              error_models: ['lsst_obs_cond_dp2']
+              models_to_run_select: ['lsst_obs_cond_dp2']
+              selectors: ['DESI_BGS_flagship', 'DESI_LRG_flagship', 'DESI_ELG_flagship', 'zCOSMOS']
+          photometric_errors:
+            kwargs:
+              error_models: ['lsst_obs_cond_dp2']
+
+  # These are variables that we iterate over when running over entire catalogs
+  IterationVars:
+    pixel:
+        - 24811
+        - 24812
+        - 24813
+        - 24814
+        - 24815
+        - 24816
+        - 24817
+        - 24818
